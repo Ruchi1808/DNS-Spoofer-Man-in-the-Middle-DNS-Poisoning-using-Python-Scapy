@@ -40,5 +40,17 @@ This project captures live network packets, inspects DNS response traffic, and m
 
 ### ✅ Step 1: Enable IP Forwarding
 ```bash
+iptables -I FORWARD -j NFQUEUE --queue-num 0
+```
+
+### ✅ Step 2: Add iptables Rule
+```bash
 echo 1 > /proc/sys/net/ipv4/ip_forward
+```
+
+### ✅ Step 3: Run the DNS Spoofer Script
+```bash
+python3 dns_spoofer.py
+```
+
 
