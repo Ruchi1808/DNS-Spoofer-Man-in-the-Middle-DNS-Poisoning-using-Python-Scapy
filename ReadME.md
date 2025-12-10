@@ -1,94 +1,52 @@
-# DNS SPOOFER
+# DNS Spoofer (Educational & Lab Use Only)
 
-**Purpose**
+A Python-based DNS spoofing tool that demonstrates how Domain Name System (DNS) responses can be manipulated in a Man-in-the-Middle (MITM) attack scenario using **Scapy** and **Linux Netfilter Queue (NFQUEUE)**.
 
-A computer program that can spoof a web server DNS and send fake websites and information to its victim.
-
-**Our Purpose**
-
-I wanted to utilize a man in the middle attack so that I could pass my own custom information to a victim
-
-**Stipulations**
-
-This Spoofer is written on python 2.7 and the netfilterqueue is native to python 2.7
----
-To run this DNS SPOOFER  first
-    1.)
-        
-        FOR LOCAL BROWSER DO THIS:
-        
-        1.iptables -I OUTPUT -j NFQUEUE --queue-num 0
-        2.iptables -I INPUT -j NFQUEUE --queue-num 0
-        
-        FOR EXTERNAL MACHINES BROWSER:
-
-        1.iptables -I FORWARD -j -NFQUEUE --queue-num0
-
-    2.) Install netfilterqueue using pip commands (only on python 2.7 as of now)
-    3.) Run the arp_spoofer program to establish the "Man-in-the-Middle" connection
-    4.) Run the dns_spoofer in tandem as the arp_spoofer will allow you the connection
----
-To allow packet forwarding from your Dabien Linux Terminal use the command:
-
-    echo 1 > /proc/sys/net/ipv4/ip_forward
----
-# Code and Tools
-**Code Breakdown**
-
- I created these methods:
- 
-    1. process_packet(packet) ----> processes captured packet and uses it to spoof
-    
----
-**Tools**
-
-process_packet(packet):
-
-    ->use scapy tools us as get_payload() method to create a custom scapy packet
-    
-    ->used custom scapy packet to amnipulate data
-    
-    ->check if packet has DNS request layer using .haslayer(scapy.DNSRR)
-    
-    ->create a variable to store the query name using scapy_packet[scapy.DNSQR].qname
-    
-    ->use conditional to check if given data is in the query name
-    
-    ->create a custom answer field using scapy.DNSRR(rrname, rdata)
-    
-    ->manipulated the rrname and the rdata to the query name (qname) and a custom ip respectively
-    
-        -: this changes the values in the DNS request that will be sent to the victm and the DNS server
-        
-    ->Deleted the len and chksum from the IP and UDP sections
-    
-        -:Allows for us to bypass the DNS servers fail safe to ensure that we are not tampering
-        
-            del scapy_packet[scapy.IP].len
-            
-            del scapy_packet[scapy.IP].chksum
-            
-            del scapy_packet[scapy.UDP].len
-            
-            del scapy_packet[scapy.UDP].chksum
-            
-    ->Set the custom scapy packet payload to the packet that we are returning
-    
-        -:packet.set_payload(str(scapy_packet))
-        
+This project is developed strictly for **educational purposes**, cybersecurity learning, and testing within a **controlled lab environment**.
 
 ---
-# Disclaimer
-**Notice**
 
-    This program is run on my own virtual box machines and set up. The code in this project can be and should be editied to fit you ip and mac address specifications. Ideal set up is necessary for proper efficeny.
+## 📌 Project Description
+
+DNS spoofing (also known as DNS poisoning) is a cyberattack where a malicious DNS response is sent to a victim, redirecting them to an attacker-controlled IP address instead of the legitimate one.
+
+This project captures live network packets, inspects DNS response traffic, and modifies the response for a specific target domain before forwarding it back to the victim.
+
 ---
-***WARNING***
 
-THIS CODE IS NOT USED FOR MALLICIOUS INTENT AND IS AN EDUCATIONAL PROJECT USED TO SHOWCASE MY ABILITIES AS A ETHICAL HACKER.
-IF THIS CODE IS UTILIZED IN ANY FORM OF MALLICIOUS INTENT, BE INFORMED THAT PROPER LEAGAL COURSE OF ACTION CAN BE TAKEN ON THOSE WHO
-USE IT BY LAW ENFORCEMENT AGENCIES.
+## 🛠️ Technologies Used
 
+- Python 3
+- Scapy
+- NetfilterQueue
+- Linux (iptables & packet forwarding)
 
+---
 
+## ⚙️ Working Mechanism
 
+1. Network packets are redirected to a Netfilter Queue using `iptables`
+2. The Python script fetches packets from the queue
+3. DNS response packets are inspected
+4. If the DNS query matches the target domain:
+   - A fake DNS response is crafted
+   - The IP address is replaced with an attacker-defined IP
+5. Packet length and checksums are recalculated
+6. The modified packet is forwarded to the target system
+
+---
+
+## 🚀 Installation & Usage (Lab Setup Only)
+
+### ✅ Step 1: Enable IP Forwarding
+```bash
+echo 1 > /proc/sys/net/ipv4/ip_forward
+✅ Step 2: Add iptables Rule
+bash
+Copy code
+iptables -I FORWARD -j NFQUEUE --queue-num 0
+✅ Step 3: Run the DNS Spoofer Script
+bash
+Copy code
+python3 dns_spoofer.py
+⚠️ Recommended to use in VirtualBox / VMware / isolated test networks only.
