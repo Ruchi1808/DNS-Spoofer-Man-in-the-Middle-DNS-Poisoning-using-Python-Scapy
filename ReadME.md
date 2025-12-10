@@ -41,12 +41,4 @@ This project captures live network packets, inspects DNS response traffic, and m
 ### ✅ Step 1: Enable IP Forwarding
 ```bash
 echo 1 > /proc/sys/net/ipv4/ip_forward
-✅ Step 2: Add iptables Rule
-bash
-Copy code
-iptables -I FORWARD -j NFQUEUE --queue-num 0
-✅ Step 3: Run the DNS Spoofer Script
-bash
-Copy code
-python3 dns_spoofer.py
-⚠️ Recommended to use in VirtualBox / VMware / isolated test networks only.
+
