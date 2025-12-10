@@ -1,16 +1,36 @@
-# DNS Spoofer (Educational & Lab Use Only)
+# DNS Spoofer – Man-in-the-Middle DNS Poisoning (Educational & Lab Use Only)
 
-A Python-based DNS spoofing tool that demonstrates how Domain Name System (DNS) responses can be manipulated in a Man-in-the-Middle (MITM) attack scenario using **Scapy** and **Linux Netfilter Queue (NFQUEUE)**.
+A Python-based DNS spoofing tool that demonstrates how Domain Name System (DNS) responses can be manipulated in a Man-in-the-Middle (MITM) attack scenario using **Scapy** and **Linux NetfilterQueue (NFQUEUE)**.
 
-This project is developed strictly for **educational purposes**, cybersecurity learning, and testing within a **controlled lab environment**.
+> ⚠️ **Disclaimer:** This project is strictly for educational use in a controlled lab environment.  
+> Do NOT use this tool on networks you do not own or have explicit permission to test.
 
 ---
 
-## 📌 Project Description
+## 📌 Project Overview
 
-DNS spoofing (also known as DNS poisoning) is a cyberattack where a malicious DNS response is sent to a victim, redirecting them to an attacker-controlled IP address instead of the legitimate one.
+DNS spoofing (also known as DNS poisoning) is an attack where a victim is redirected to a malicious IP address by manipulating DNS responses.
 
-This project captures live network packets, inspects DNS response traffic, and modifies the response for a specific target domain before forwarding it back to the victim.
+This project demonstrates:
+- Interception of DNS traffic using Linux **iptables**
+- Packet redirection to **Netfilter Queue (NFQUEUE)**
+- DNS response modification using **Scapy**
+- Redirection of victims to attacker-controlled IP addresses
+
+---
+
+## 🧠 Architecture / Working Flow
+
+1. Victim sends a DNS request for a domain (e.g., `www.example.com`).
+2. The attacker system is placed in a MITM position within the network.
+3. DNS response packets are redirected to **NFQUEUE** using iptables.
+4. The Python script analyzes each packet:
+   - Verifies DNS response packets
+   - Matches the target domain
+5. If a match is found:
+   - The DNS answer IP is replaced with a spoofed IP
+   - Packet checksums and lengths are recalculated
+6. The modified packet is forwarded to the victim.
 
 ---
 
@@ -19,38 +39,109 @@ This project captures live network packets, inspects DNS response traffic, and m
 - Python 3
 - Scapy
 - NetfilterQueue
-- Linux (iptables & packet forwarding)
+- Linux (iptables & IP forwarding)
 
 ---
 
-## ⚙️ Working Mechanism
+## 📦 Installation
 
-1. Network packets are redirected to a Netfilter Queue using `iptables`
-2. The Python script fetches packets from the queue
-3. DNS response packets are inspected
-4. If the DNS query matches the target domain:
-   - A fake DNS response is crafted
-   - The IP address is replaced with an attacker-defined IP
-5. Packet length and checksums are recalculated
-6. The modified packet is forwarded to the target system
+Clone the repository:
 
----
-
-## 🚀 Installation & Usage (Lab Setup Only)
-
-### ✅ Step 1: Enable IP Forwarding
 ```bash
-iptables -I FORWARD -j NFQUEUE --queue-num 0
+git clone https://github.com/Ruchi1808/DNS-Spoofer-Man-in-the-Middle-DNS-Poisoning-using-Python-Scapy.git
+cd DNS-Spoofer-Man-in-the-Middle-DNS-Poisoning-using-Python-Scapy
 ```
 
-### ✅ Step 2: Add iptables Rule
+Install required dependencies:
+
 ```bash
-echo 1 > /proc/sys/net/ipv4/ip_forward
+pip install -r requirements.txt
 ```
 
-### ✅ Step 3: Run the DNS Spoofer Script
+If NetfilterQueue installation fails:
+
 ```bash
-python3 dns_spoofer.py
+sudo apt-get install python3-dev libnetfilter-queue-dev build-essential
+pip install netfilterqueue
 ```
 
+## ⚙️ Configuration
 
+Modify the following values inside dns_spoofer.py:
+
+```python
+TARGET_DOMAIN = b"www.example.com."
+FAKE_IP = "192.168.1.100"
+```
+
+## 🚀 Usage (Lab Environment Only)
+
+   ⚠️ All commands require root privileges.
+
+## ✅ Step 1: Enable IP Forwarding
+
+```bash
+echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
+```
+
+## ✅ Step 2: Redirect Packets to NFQUEUE
+
+```bash
+sudo iptables -I FORWARD -j NFQUEUE --queue-num 0
+```
+
+To capture only DNS traffic:
+
+```bash
+sudo iptables -I FORWARD -p udp --dport 53 -j NFQUEUE --queue-num 0
+```
+
+## ✅ Step 3: Run the DNS Spoofer
+
+```bash
+sudo python3 dns_spoofer.py
+```
+
+## 🧹 Cleanup (Important)
+
+   Always restore system settings after testing.
+
+## Disable IP Forwarding
+
+```bash
+echo 0 | sudo tee /proc/sys/net/ipv4/ip_forward
+```
+
+## Remove iptables Rules
+
+```bash
+sudo iptables -D FORWARD -j NFQUEUE --queue-num 0
+```
+
+or (if DNS-only rule was used):
+
+```bash
+sudo iptables -D FORWARD -p udp --dport 53 -j NFQUEUE --queue-num 0
+```
+
+## ⚠️ Limitations
+
+   -Works only with unencrypted DNS traffic (no DoH/DoT).
+
+   -Requires MITM position (e.g., ARP spoofing).
+
+   -Intended for controlled lab environments.
+
+   -Linux-only implementation.
+
+## 🎓 Academic & Interview Relevance
+
+   -This project demonstrates:
+
+   -Practical understanding of DNS protocol vulnerabilities
+
+   -Network packet interception using iptables and NFQUEUE
+
+   -Real-time packet modification using Scapy
+
+   -Ethical hacking and network security concepts   
