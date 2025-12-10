@@ -1,2 +1,0 @@
-# DNS-Spoofer-Man-in-the-Middle-DNS-Poisoning-using-Python-Scapy
-A Python-based DNS spoofing tool that hooks into Linux iptables using NFQUEUE and Scapy to perform Man-in-the-Middle DNS response manipulation in a controlled lab environment. Implemented custom packet processing to detect DNS responses and inject forged answers for specific domains. Built for educational and ethical hacking practice only.
